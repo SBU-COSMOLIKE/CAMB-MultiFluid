@@ -6,13 +6,18 @@
     use DarkEnergyInterface
     implicit none
     class(CAMBdata) :: this
+    integer :: i
     real(dl), intent(in) :: a
-    real(dl) :: dtauda, grhoa2, grhov_t
+    real(dl) :: dtauda, grhoa2
+    real(dl), dimension(max_num_of_fluids) :: grhov_t ! JVR modification
 
     call this%CP%DarkEnergy%BackgroundDensityAndPressure(this%grhov, a, grhov_t)
 
     !  8*pi*G*rho*a**4.
-    grhoa2 = this%grho_no_de(a) +  grhov_t * a**2
+    grhoa2 = this%grho_no_de(a)! JVR modification +  grhov_t * a**2
+    do i = 1, this%CP%DarkEnergy%num_of_components
+        grhoa2 = grhoa2 + grhov_t(i)*a*a
+    end do
     if (grhoa2 <= 0) then
         call GlobalError('Universe stops expanding before today (recollapse not supported)', error_unsupported_params)
         dtauda = 0
@@ -160,13 +165,15 @@
         polter, polterdot, polterddot, octg, octgdot, E, Edot, &
         opacity, dopacity, ddopacity, visibility, dvisibility, ddvisibility, exptau, &
         tau0, tau_maxvis, Kf, f_K)
-    use precision
-    real(dl), intent(out) :: sources(:)
-    real(dl), intent(in) :: tau, a, adotoa, grho, gpres,w_lam, cs2_lam,  &
-        grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t,grhonu_t, &
+        use precision
+        use DarkEnergyInterface
+        real(dl), intent(out) :: sources(:)
+    ! JVR modification: putting arrays in DE quantities
+    real(dl), intent(in) :: tau, a, adotoa, grho, gpres,w_lam(max_num_of_fluids), cs2_lam,  &
+        grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t(max_num_of_fluids),grhonu_t, &
         k,etak, etakdot, phi, phidot, sigma, sigmadot, &
-        dgrho, clxg,clxb,clxc, clxr, clxnu, clxde, delta_p_b, &
-        dgq, qg, qr, qde, vb, qgdot, qrdot, vbdot, &
+        dgrho, clxg,clxb,clxc, clxr, clxnu, clxde(max_num_of_fluids), delta_p_b, &
+        dgq, qg, qr, qde(max_num_of_fluids), vb, qgdot, qrdot, vbdot, &
         dgpi, pig, pir, pigdot, pirdot, diff_rhopi, &
         polter, polterdot, polterddot, octg, octgdot, E(2:3), Edot(2:3), &
         opacity, dopacity, ddopacity, visibility, dvisibility, ddvisibility, exptau, &
@@ -2154,8 +2161,8 @@
     real(dl) q,aq,v
     real(dl) G11_t,G30_t, wnu_arr(max_nu)
 
-    real(dl) dgq,grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t,grhonu_t,sigma,polter
-    real(dl) w_dark_energy_t !equation of state of dark energy
+    real(dl) dgq,grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t(max_num_of_fluids),grhonu_t,sigma,polter
+    real(dl) w_dark_energy_t(max_num_of_fluids) !equation of state of dark energy
     real(dl) gpres_noDE !Pressure with matter and radiation, no dark energy
     real(dl) qgdot,qrdot,pigdot,pirdot,vbdot,dgrho,adotoa
     real(dl) a,a2,z,clxc,clxb,vb,clxg,qg,pig,clxr,qr,pir
@@ -2176,7 +2183,8 @@
     real(dl) phidot, polterdot, polterddot, octg, octgdot
     real(dl) ddopacity, visibility, dvisibility, ddvisibility, exptau, lenswindow
     real(dl) ISW, quadrupole_source, doppler, monopole_source, tau0, ang_dist
-    real(dl) dgrho_de, dgq_de, cs2_de
+    real(dl), dimension(max_num_of_fluids) :: dgrho_de, dgq_de
+    real(dl) cs2_de
 
     k=EV%k_buf
     k2=EV%k2_buf
@@ -2225,7 +2233,10 @@
     end if
 
     grho_matter=grhonu_t+grhob_t+grhoc_t
-    grho = grho_matter+grhor_t+grhog_t+grhov_t
+    grho = grho_matter+grhor_t+grhog_t ! JVR modification
+    do i = 1, CP%DarkEnergy%num_of_components
+        grho = grho + grhov_t(i)
+    end do
     gpres_noDE = gpres_nu + (grhor_t + grhog_t)/3
 
     if (State%flat) then
@@ -2285,8 +2296,11 @@
         call State%CP%DarkEnergy%PerturbedStressEnergy(dgrho_de, dgq_de, &
             a, dgq, dgrho, grho, grhov_t, w_dark_energy_t, gpres_noDE, etak, &
             adotoa, k, EV%Kf(1), ay, ayprime, EV%w_ix)
-        dgrho = dgrho + dgrho_de
-        dgq = dgq + dgq_de
+        ! JVR modification
+        do i = 1, CP%DarkEnergy%num_of_components
+            dgrho = dgrho + dgrho_de(i)
+            dgq = dgq + dgq_de(i)
+        end do
     end if
 
     !  Get sigma (shear) and z from the constraints
@@ -2350,7 +2364,10 @@
 
     if (EV%TightCoupling) then
         !  ddota/a
-        gpres = gpres_noDE + w_dark_energy_t*grhov_t
+        gpres = gpres_noDE ! JVR modification + w_dark_energy_t*grhov_t
+        do i = 1, CP%DarkEnergy%num_of_components
+            gpres = gpres + w_dark_energy_t(i)*grhov_t(i)
+        end do
         adotdota=(adotoa*adotoa-gpres)/2
 
         pig = 32._dl/45/opacity*k*(sigma+vb)
@@ -2685,7 +2702,10 @@
             call MassiveNuVarsOut(EV,ay,ayprime,a, adotoa, dgpi=dgpi, clxnu_all=clxnu, &
                 dgpi_diff=dgpi_diff, pidot_sum=pidot_sum)
         end if
-        gpres = gpres_noDE + w_dark_energy_t*grhov_t
+        gpres = gpres_noDE ! JVR modification + w_dark_energy_t*grhov_t
+        do i = 1, CP%DarkEnergy%num_of_components
+            gpres = gpres + w_dark_energy_t(i)*grhov_t(i)
+        end do
         diff_rhopi = pidot_sum - (4*dgpi+ dgpi_diff)*adotoa + &
             State%CP%DarkEnergy%diff_rhopi_Add_Term(dgrho_de, dgq_de, grho, &
             gpres, w_dark_energy_t, State%grhok, adotoa, &
@@ -2818,16 +2838,16 @@
     use MassiveNu
     implicit none
     type(EvolutionVars) EV
-    integer n,l
+    integer n,l,i
     real(dl), target ::  yv(n),yvprime(n)
     real(dl) ep,tau,grho,rhopi,cs2,opacity,gpres
     logical finished_tightcoupling
     real(dl), dimension(:),pointer :: neut,neutprime,E,B,Eprime,Bprime
-    real(dl)  grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t,polter
+    real(dl)  grhob_t,grhor_t,grhoc_t,grhog_t,grhov_t(max_num_of_fluids),polter
     real(dl) sigma, qg,pig, qr, vb, rhoq, vbdot, photbar, pb43
     real(dl) k,k2,a,a2, adotdota
     real(dl) pir,adotoa
-    real(dl) w_dark_energy_t
+    real(dl), dimension(max_num_of_fluids) :: w_dark_energy_t
 
     k2=EV%k2_buf
     k=EV%k_buf
@@ -2867,8 +2887,13 @@
     grhog_t=State%grhog/a2
     call CP%DarkEnergy%BackgroundDensityAndPressure(State%grhov, a, grhov_t, w_dark_energy_t)
 
-    grho=grhob_t+grhoc_t+grhor_t+grhog_t+grhov_t
-    gpres=(grhog_t+grhor_t)/3._dl+grhov_t*w_dark_energy_t
+    grho=grhob_t+grhoc_t+grhor_t+grhog_t
+    gpres=(grhog_t+grhor_t)/3._dl !+grhov_t*w_dark_energy_t
+    ! JVR modification: loop
+    do i = 1, CP%DarkEnergy%num_of_components
+        grho = grho + grhov_t(i)
+        gpres = gpres + grhov_t(i)*w_dark_energy_t(i)
+    end do
 
     adotoa=sqrt(grho/3._dl)
     adotdota=(adotoa*adotoa-gpres)/2
