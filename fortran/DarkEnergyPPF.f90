@@ -79,8 +79,8 @@
         Kf1, k, grhov_t, z, k2, yprime, y, w_ix) result(ppiedot)
     !Get derivative of anisotropic stress
     class(TDarkEnergyPPF), intent(in) :: this
-    real(dl), intent(in) :: dgrhoe, dgqe, grho, gpres, w, grhok, adotoa, &
-        k, grhov_t, z, k2, yprime(:), y(:), Kf1
+    real(dl), intent(in) :: dgrhoe(max_num_of_fluids), dgqe(max_num_of_fluids), grho, gpres, w(max_num_of_fluids), grhok, adotoa, &
+        k, grhov_t(max_num_of_fluids), z, k2, yprime(:), y(:), Kf1
     integer, intent(in) :: w_ix
     real(dl) :: ppiedot, hdotoh
 
@@ -88,9 +88,9 @@
         ppiedot = 0
     else
         hdotoh = (-3._dl * grho - 3._dl * gpres - 2._dl * grhok) / 6._dl / adotoa
-        ppiedot = 3._dl * dgrhoe + dgqe * &
+        ppiedot = 3._dl * dgrhoe(1) + dgqe(1) * &
             (12._dl / k * adotoa + k / adotoa - 3._dl / k * (adotoa + hdotoh)) + &
-            grhov_t * (1 + w) * k * z / adotoa - 2._dl * k2 * Kf1 * &
+            grhov_t(1) * (1 + w(1)) * k * z / adotoa - 2._dl * k2 * Kf1 * &
             (yprime(w_ix) / adotoa - 2._dl * y(w_ix))
         ppiedot = ppiedot * adotoa / Kf1
     end if
@@ -101,8 +101,8 @@
     subroutine TDarkEnergyPPF_PerturbedStressEnergy(this, dgrhoe, dgqe, &
         a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1, ay, ayprime, w_ix)
     class(TDarkEnergyPPF), intent(inout) :: this
-    real(dl), intent(out) :: dgrhoe, dgqe
-    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1
+    real(dl), intent(out), dimension(max_num_of_fluids) :: dgrhoe, dgqe
+    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t(max_num_of_fluids), w(max_num_of_fluids), gpres_noDE, etak, adotoa, k, kf1
     real(dl), intent(in) :: ay(*)
     real(dl), intent(inout) :: ayprime(*)
     integer, intent(in) :: w_ix
@@ -110,14 +110,14 @@
     real(dl) :: vT, grhoT, k2
 
     if (this%no_perturbations) then
-        dgrhoe=0
-        dgqe=0
+        dgrhoe(1)=0
+        dgqe(1)=0
         return
     end if
 
     k2=k**2
     !ppf
-    grhoT = grho - grhov_t
+    grhoT = grho - grhov_t(1)
     vT = dgq / (grhoT + gpres_noDE)
     Gamma = ay(w_ix)
 
@@ -126,7 +126,7 @@
         k * Gamma
     sigma = sigma / adotoa
 
-    S_Gamma = grhov_t * (1 + w) * (vT + sigma) * k / adotoa / 2._dl / k2
+    S_Gamma = grhov_t(1) * (1 + w(1)) * (vT + sigma) * k / adotoa / 2._dl / k2
     ckH = this%c_Gamma_ppf * k / adotoa
 
     if (ckH * ckH .gt. 3.d1) then ! ckH^2 > 30 ?????????
@@ -139,9 +139,9 @@
     ayprime(w_ix) = Gammadot !Set this here, and don't use PerturbationEvolve
 
     Fa = 1 + 3 * (grhoT + gpres_noDE) / 2._dl / k2 / kf1
-    dgqe = S_Gamma - Gammadot / adotoa - Gamma
-    dgqe = -dgqe / Fa * 2._dl * k * adotoa + vT * grhov_t * (1 + w)
-    dgrhoe = -2 * k2 * kf1 * Gamma - 3 / k * adotoa * dgqe
+    dgqe(1) = S_Gamma - Gammadot / adotoa - Gamma
+    dgqe(1) = -dgqe(1) / Fa * 2._dl * k * adotoa + vT * grhov_t(1) * (1 + w(1))
+    dgrhoe = -2 * k2 * kf1 * Gamma - 3 / k * adotoa * dgqe(1)
 
     end subroutine TDarkEnergyPPF_PerturbedStressEnergy
 

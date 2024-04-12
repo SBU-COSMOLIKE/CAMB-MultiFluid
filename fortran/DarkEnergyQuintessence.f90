@@ -134,24 +134,25 @@
     !Get grhov_t = 8*pi*rho_de*a**2 and (optionally) equation of state at scale factor a
     class(TQuintessence), intent(inout) :: this
     real(dl), intent(in) :: grhov, a
-    real(dl), intent(out) :: grhov_t
-    real(dl), optional, intent(out) :: w
+    ! JVR modification: changing grhov_t and w to be arrays
+    real(dl), dimension(max_num_of_fluids), intent(out) :: grhov_t
+    real(dl), dimension(max_num_of_fluids), optional, intent(out) :: w
     real(dl) V, a2, grhov_lambda, phi, phidot
 
     if (this%is_cosmological_constant) then
-        grhov_t = grhov * a * a
-        if (present(w)) w = -1_dl
+        grhov_t(1) = grhov * a * a
+        if (present(w)) w(1) = -1_dl
     elseif (a >= this%astart) then
         a2 = a**2
         call this%ValsAta(a,phi,phidot)
         V = this%Vofphi(phi,0)
-        grhov_t = phidot**2/2 + a2*V
+        grhov_t(1) = phidot**2/2 + a2*V
         if (present(w)) then
-            w = (phidot**2/2 - a2*V)/grhov_t
+            w = (phidot**2/2 - a2*V)/grhov_t(1)
         end if
     else
-        grhov_t=0
-        if (present(w)) w = -1
+        grhov_t(1)=0
+        if (present(w)) w(1) = -1
     end if
 
     end subroutine TQuintessence_BackgroundDensityAndPressure
@@ -238,8 +239,8 @@
         a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1, ay, ayprime, w_ix)
     !Get density perturbation and heat flux
     class(TQuintessence), intent(inout) :: this
-    real(dl), intent(out) :: dgrhoe, dgqe
-    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1
+    real(dl), intent(out), dimension(max_num_of_fluids) :: dgrhoe, dgqe
+    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t(max_num_of_fluids), w(max_num_of_fluids), gpres_noDE, etak, adotoa, k, kf1
     real(dl), intent(in) :: ay(*)
     real(dl), intent(inout) :: ayprime(*)
     integer, intent(in) :: w_ix
@@ -248,8 +249,8 @@
     call this%ValsAta(a,phi,phidot)
     clxq=ay(w_ix)
     vq=ay(w_ix+1)
-    dgrhoe= phidot*vq +clxq*a**2*this%Vofphi(phi,1)
-    dgqe= k*phidot*clxq
+    dgrhoe(1) = phidot*vq +clxq*a**2*this%Vofphi(phi,1)
+    dgqe(1) = k*phidot*clxq
 
     end subroutine TQuintessence_PerturbedStressEnergy
 
@@ -259,7 +260,7 @@
     !Get conformal time derivatives of the density perturbation and velocity
     class(TQuintessence), intent(in) :: this
     real(dl), intent(inout) :: ayprime(:)
-    real(dl), intent(in) :: a, adotoa, w, k, z, y(:)
+    real(dl), intent(in) :: a, adotoa, w(max_num_of_fluids), k, z, y(:)
     integer, intent(in) :: w_ix
     real(dl) clxq, vq, phi, phidot
 

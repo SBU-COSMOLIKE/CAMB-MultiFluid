@@ -931,8 +931,10 @@
     class(CAMBdata) :: this
     integer, intent(in) :: n
     real(dl), intent(in) :: a_arr(n)
-    real(dl) :: grhov_t, rhonu, grhonu, a
-    real(dl), intent(out) :: densities(8,n)
+    ! JVR modification: changing `grhov_t` to be array
+    real(dl), dimension(max_num_of_fluids) :: grhov_t
+    real(dl) :: rhonu, grhonu, a
+    real(dl), intent(out) :: densities(9,n) ! JVR modification: changed densities to have 9 components
     integer nu_i,i
 
     do i=1, n
@@ -954,8 +956,9 @@
         densities(5,i) = this%grhog
         densities(6,i) = this%grhornomass
         densities(7,i) = grhonu
-        densities(8,i) = grhov_t*a**2
-        densities(1,i) = sum(densities(2:8,i))
+        densities(8,i) = grhov_t(1)*a**2 ! JVR modification: changed densities to have 9 components
+        densities(9,i) = grhov_t(2)*a**2
+        densities(1,i) = sum(densities(2:9,i))
     end do
 
     end subroutine CAMBdata_GetBackgroundDensities

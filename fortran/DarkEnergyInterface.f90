@@ -50,19 +50,21 @@
 
     function w_de(this, a)
     class(TDarkEnergyModel) :: this
-    real(dl) :: w_de, al
+    real(dl), dimension(max_num_of_fluids) :: w_de ! JVR modification: changing to array
+    real(dl) :: al
     real(dl), intent(IN) :: a
 
-    w_de = -1._dl
+    w_de(1) = -1._dl
 
     end function w_de  ! equation of state of the PPF DE
 
     function grho_de(this, a)  !relative density (8 pi G a^4 rho_de /grhov)
     class(TDarkEnergyModel) :: this
-    real(dl) :: grho_de, al, fint
+    real(dl), dimension(max_num_of_fluids) :: grho_de ! JVR modification: changing to array
+    real(dl) :: al, fint
     real(dl), intent(IN) :: a
 
-    grho_de =0._dl
+    grho_de(1) = 0._dl
 
     end function grho_de
 
@@ -84,8 +86,9 @@
     !Get grhov_t = 8*pi*rho_de*a**2 and (optionally) equation of state at scale factor a
     class(TDarkEnergyModel), intent(inout) :: this
     real(dl), intent(in) :: grhov, a
-    real(dl), intent(out) :: grhov_t
-    real(dl), optional, intent(out) :: w
+    ! JVR modification: changing `grhov_t` and `w` to be arrays
+    real(dl), dimension(max_num_of_fluids), intent(out) :: grhov_t
+    real(dl), dimension(max_num_of_fluids), optional, intent(out) :: w
 
     if (this%is_cosmological_constant) then
         grhov_t = grhov * a * a
@@ -115,8 +118,8 @@
     subroutine PerturbedStressEnergy(this, dgrhoe, dgqe, &
         a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1, ay, ayprime, w_ix)
     class(TDarkEnergyModel), intent(inout) :: this
-    real(dl), intent(out) :: dgrhoe, dgqe
-    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1
+    real(dl), intent(out), dimension(max_num_of_fluids) :: dgrhoe, dgqe
+    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t(max_num_of_fluids), w(max_num_of_fluids), gpres_noDE, etak, adotoa, k, kf1
     real(dl), intent(in) :: ay(*)
     real(dl), intent(inout) :: ayprime(*)
     integer, intent(in) :: w_ix
@@ -130,8 +133,8 @@
     function diff_rhopi_Add_Term(this, dgrhoe, dgqe,grho, gpres, w, grhok, adotoa, &
         Kf1, k, grhov_t, z, k2, yprime, y, w_ix) result(ppiedot)
     class(TDarkEnergyModel), intent(in) :: this
-    real(dl), intent(in) :: dgrhoe, dgqe, grho, gpres, grhok, w, adotoa, &
-        k, grhov_t, z, k2, yprime(:), y(:), Kf1
+    real(dl), intent(in) :: dgrhoe(max_num_of_fluids), dgqe(max_num_of_fluids), grho, gpres, grhok, w(max_num_of_fluids), adotoa, &
+        k, grhov_t(max_num_of_fluids), z, k2, yprime(:), y(:), Kf1 ! JVR modification: changing dark energy quantities dgrhoe, dgqe, w, grhov_t to be arrays
     integer, intent(in) :: w_ix
     real(dl) :: ppiedot
 
@@ -144,7 +147,7 @@
     subroutine PerturbationEvolve(this, ayprime, w, w_ix, a, adotoa, k, z, y)
     class(TDarkEnergyModel), intent(in) :: this
     real(dl), intent(inout) :: ayprime(:)
-    real(dl), intent(in) :: a,adotoa, k, z, y(:), w
+    real(dl), intent(in) :: a, adotoa, k, z, y(:), w(max_num_of_fluids)
     integer, intent(in) :: w_ix
     end subroutine PerturbationEvolve
 
@@ -186,19 +189,20 @@
 
     function TDarkEnergyEqnOfState_w_de(this, a)
     class(TDarkEnergyEqnOfState) :: this
-    real(dl) :: TDarkEnergyEqnOfState_w_de, al
+    real(dl), dimension(max_num_of_fluids) :: TDarkEnergyEqnOfState_w_de
+    real(dl) :: al
     real(dl), intent(IN) :: a
 
     if(.not. this%use_tabulated_w) then
-        TDarkEnergyEqnOfState_w_de= this%w_lam+ this%wa*(1._dl-a)
+        TDarkEnergyEqnOfState_w_de(1) = this%w_lam+ this%wa*(1._dl-a)
     else
         al=dlog(a)
         if(al <= this%equation_of_state%Xmin_interp) then
-            TDarkEnergyEqnOfState_w_de= this%equation_of_state%F(1)
+            TDarkEnergyEqnOfState_w_de(1) = this%equation_of_state%F(1)
         elseif(al >= this%equation_of_state%Xmax_interp) then
-            TDarkEnergyEqnOfState_w_de= this%equation_of_state%F(this%equation_of_state%n)
+            TDarkEnergyEqnOfState_w_de(1) = this%equation_of_state%F(this%equation_of_state%n)
         else
-            TDarkEnergyEqnOfState_w_de = this%equation_of_state%Value(al)
+            TDarkEnergyEqnOfState_w_de(1) = this%equation_of_state%Value(al)
         endif
     endif
 
@@ -216,18 +220,19 @@
 
     function TDarkEnergyEqnOfState_grho_de(this, a) result(grho_de) !relative density (8 pi G a^4 rho_de /grhov)
     class(TDarkEnergyEqnOfState) :: this
-    real(dl) :: grho_de, al, fint
+    real(dl), dimension(max_num_of_fluids) :: grho_de
+    real(dl) :: al, fint
     real(dl), intent(IN) :: a
 
     if(.not. this%use_tabulated_w) then
-        grho_de = a ** (1._dl - 3. * this%w_lam - 3. * this%wa)
-        if (this%wa/=0) grho_de=grho_de*exp(-3. * this%wa * (1._dl - a))
+        grho_de(1) = a ** (1._dl - 3. * this%w_lam - 3. * this%wa)
+        if (this%wa/=0) grho_de(1) = grho_de(1)*exp(-3. * this%wa * (1._dl - a))
     else
-        if(a == 0.d0)then
-            grho_de = 0.d0      !assume rho_de*a^4-->0, when a-->0, OK if w_de always <0.
+        if(a == 0.d0) then
+            grho_de(1) = 0.d0      !assume rho_de*a^4-->0, when a-->0, OK if w_de always <0.
         else
             if (a>=1) then
-                fint= 1
+                fint = 1
             else
                 al = dlog(a)
                 if(al <= this%logdensity%X(1)) then
@@ -237,7 +242,7 @@
                     fint = exp(this%logdensity%Value(al))
                 endif
             end if
-            grho_de = fint
+            grho_de(1) = fint
         endif
     endif
 

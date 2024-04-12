@@ -98,8 +98,8 @@
     subroutine TDarkEnergyFluid_PerturbedStressEnergy(this, dgrhoe, dgqe, &
         a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1, ay, ayprime, w_ix)
     class(TDarkEnergyFluid), intent(inout) :: this
-    real(dl), intent(out) :: dgrhoe, dgqe
-    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1
+    real(dl), intent(out), dimension(max_num_of_fluids) :: dgrhoe, dgqe
+    real(dl), intent(in) ::  a, dgq, dgrho, grho, grhov_t(max_num_of_fluids), w(max_num_of_fluids), gpres_noDE, etak, adotoa, k, kf1
     real(dl), intent(in) :: ay(*)
     real(dl), intent(inout) :: ayprime(*)
     integer, intent(in) :: w_ix
@@ -108,8 +108,8 @@
         dgrhoe=0
         dgqe=0
     else
-        dgrhoe = ay(w_ix) * grhov_t
-        dgqe = ay(w_ix + 1) * grhov_t * (1 + w)
+        dgrhoe = ay(w_ix) * grhov_t(1)
+        dgqe = ay(w_ix + 1) * grhov_t(1) * (1 + w(1))
     end if
     end subroutine TDarkEnergyFluid_PerturbedStressEnergy
 
@@ -118,14 +118,14 @@
         a, adotoa, k, z, y)
     class(TDarkEnergyFluid), intent(in) :: this
     real(dl), intent(inout) :: ayprime(:)
-    real(dl), intent(in) :: a, adotoa, w, k, z, y(:)
+    real(dl), intent(in) :: a, adotoa, w(max_num_of_fluids), k, z, y(:)
     integer, intent(in) :: w_ix
     real(dl) Hv3_over_k, loga
 
     Hv3_over_k =  3*adotoa* y(w_ix + 1) / k
     !density perturbation
-    ayprime(w_ix) = -3 * adotoa * (this%cs2_lam - w) *  (y(w_ix) + (1 + w) * Hv3_over_k) &
-        -  (1 + w) * k * y(w_ix + 1) - (1 + w) * k * z
+    ayprime(w_ix) = -3 * adotoa * (this%cs2_lam - w(1)) *  (y(w_ix) + (1 + w(1)) * Hv3_over_k) &
+        -  (1 + w(1)) * k * y(w_ix + 1) - (1 + w(1)) * k * z
     if (this%use_tabulated_w) then
         !account for derivatives of w
         loga = log(a)
@@ -136,9 +136,9 @@
         ayprime(w_ix) = ayprime(w_ix) + Hv3_over_k*this%wa*adotoa*a
     end if
     !velocity
-    if (abs(w+1) > 1e-6) then
+    if (abs(w(1)+1) > 1e-6) then
         ayprime(w_ix + 1) = -adotoa * (1 - 3 * this%cs2_lam) * y(w_ix + 1) + &
-            k * this%cs2_lam * y(w_ix) / (1 + w)
+            k * this%cs2_lam * y(w_ix) / (1 + w(1))
     else
         ayprime(w_ix + 1) = 0
     end if
@@ -220,20 +220,21 @@
 
     function TAxionEffectiveFluid_w_de(this, a)
     class(TAxionEffectiveFluid) :: this
-    real(dl) :: TAxionEffectiveFluid_w_de
+    real(dl), dimension(max_num_of_fluids) :: TAxionEffectiveFluid_w_de
     real(dl), intent(IN) :: a
     real(dl) :: rho, apow, acpow
 
     apow = a**this%pow
     acpow = this%acpow
     rho = this%omL+ this%om*(1+acpow)/(apow+acpow)
-    TAxionEffectiveFluid_w_de = this%om*(1+acpow)/(apow+acpow)**2*(1+this%w_n)*apow/rho - 1
+    TAxionEffectiveFluid_w_de(1) = this%om*(1+acpow)/(apow+acpow)**2*(1+this%w_n)*apow/rho - 1
 
     end function TAxionEffectiveFluid_w_de
 
     function TAxionEffectiveFluid_grho_de(this, a)  !relative density (8 pi G a^4 rho_de /grhov)
     class(TAxionEffectiveFluid) :: this
-    real(dl) :: TAxionEffectiveFluid_grho_de, apow
+    real(dl), dimension(max_num_of_fluids) :: TAxionEffectiveFluid_grho_de
+    real(dl) :: apow
     real(dl), intent(IN) :: a
 
     if(a == 0.d0)then
@@ -250,7 +251,7 @@
         a, adotoa, k, z, y)
     class(TAxionEffectiveFluid), intent(in) :: this
     real(dl), intent(inout) :: ayprime(:)
-    real(dl), intent(in) :: a, adotoa, w, k, z, y(:)
+    real(dl), intent(in) :: a, adotoa, w(max_num_of_fluids), k, z, y(:)
     integer, intent(in) :: w_ix
     real(dl) Hv3_over_k, deriv, apow, acpow, cs2, fac
 
@@ -267,8 +268,8 @@
     deriv  = (acpow**2*(this%om+this%omL)+this%om*acpow-apow**2*this%omL)*this%pow &
         /((apow+acpow)*(this%omL*(apow+acpow)+this%om*(1+acpow)))
     !density perturbation
-    ayprime(w_ix) = -3 * adotoa * (cs2 - w) *  (y(w_ix) + Hv3_over_k) &
-        -   k * y(w_ix + 1) - (1 + w) * k * z  - adotoa*deriv* Hv3_over_k
+    ayprime(w_ix) = -3 * adotoa * (cs2 - w(1)) *  (y(w_ix) + Hv3_over_k) &
+        -   k * y(w_ix + 1) - (1 + w(1)) * k * z  - adotoa*deriv* Hv3_over_k
     !(1+w)v
     ayprime(w_ix + 1) = -adotoa * (1 - 3 * cs2 - deriv) * y(w_ix + 1) + &
         k * cs2 * y(w_ix)
@@ -279,14 +280,14 @@
     subroutine TAxionEffectiveFluid_PerturbedStressEnergy(this, dgrhoe, dgqe, &
         a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1, ay, ayprime, w_ix)
     class(TAxionEffectiveFluid), intent(inout) :: this
-    real(dl), intent(out) :: dgrhoe, dgqe
-    real(dl), intent(in) :: a, dgq, dgrho, grho, grhov_t, w, gpres_noDE, etak, adotoa, k, kf1
+    real(dl), intent(out), dimension(max_num_of_fluids) :: dgrhoe, dgqe
+    real(dl), intent(in) :: a, dgq, dgrho, grho, grhov_t(max_num_of_fluids), w(max_num_of_fluids), gpres_noDE, etak, adotoa, k, kf1
     real(dl), intent(in) :: ay(*)
     real(dl), intent(inout) :: ayprime(*)
     integer, intent(in) :: w_ix
 
-    dgrhoe = ay(w_ix) * grhov_t
-    dgqe = ay(w_ix + 1) * grhov_t
+    dgrhoe = ay(w_ix) * grhov_t(1)
+    dgqe = ay(w_ix + 1) * grhov_t(1)
 
     end subroutine TAxionEffectiveFluid_PerturbedStressEnergy
 
