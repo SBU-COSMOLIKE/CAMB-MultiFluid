@@ -526,20 +526,7 @@ module MultiFluidDE
     use IniObjects
     class(TMultiFluidDE) :: this
     class(TIniFile), intent(in) :: Ini
-    integer :: i, j
-    character(len=30) :: read_model
-
-    do i = 1, this%num_of_components
-      write(read_model, "(A12,I1)") "model_fluid_", i
-      this%models(i) = Ini%Read_Int(trim(read_model), 1)
-    end do
-
-    do i = 1, this%num_of_components
-      do j = 1, max_num_of_params
-        write(read_model, "(A12,I1)") "de_fluid_", i, "_param_", j
-        this%models(i) = Ini%Read_Int(trim(read_model), 0)
-      end do
-    end do
+  
   end subroutine TMultiFluidDE_ReadParams
 
   function TMultiFluidDE_PythonClass()
@@ -552,7 +539,7 @@ module MultiFluidDE
     Type(c_ptr) :: cptr
     Type (TMultiFluidDE), pointer :: PType
     class (TPythonInterfacedClass), pointer :: P
-
+ 
     call c_f_pointer(cptr, PType)
     P => PType
   end subroutine TMultiFluidDE_SelfPointer

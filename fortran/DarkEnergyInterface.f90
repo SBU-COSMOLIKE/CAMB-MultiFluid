@@ -4,11 +4,14 @@
     use classes
     implicit none
 
+    integer, public, parameter :: max_num_of_fluids = 2
+
     private
 
     type, extends(TCambComponent) :: TDarkEnergyModel
         logical :: is_cosmological_constant = .true.
         integer :: num_perturb_equations = 0
+        integer :: num_of_components = 1 ! JVR Modification: adding a controller for number of components
     contains
     procedure :: Init
     procedure :: BackgroundDensityAndPressure
