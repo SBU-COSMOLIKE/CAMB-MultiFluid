@@ -126,7 +126,8 @@ module MultiFluidDE
     grho_de = 0
     do i = 1, this%num_of_components
       if (i == 1) then
-        if (this%num_of_components == 2 .and. this%models(2) == 1 .and. this%zc < 100) then ! Discounting EDE contribution today from total DE energy
+        if (this%num_of_components == 2 .and. this%models(2) == 1 .and. this%zc < 100) then
+          ! If EDE not negligible today, we discount EDE contribution today from current DE energy of fluid 1
           zc = this%zc
           fde_zc = this%fde_zc
           wn = this%wn
@@ -138,10 +139,10 @@ module MultiFluidDE
         end if
         if (this%models(i) == 1) then
           ! w_constant model
-          !w0 = this%de_params(max_num_of_params*(i-1) + 1)
           w0 = this%w0
           grho_de(i) = grho_late_today * a**(-3*(1 + w0))
         else if (this%models(i) == 2) then
+          ! w_0 - w_a model
           w0 = this%w0
           wa = this%wa
           grho_de(i) = grho_late_today * a**(-3*(1 + w0 + wa)) * exp(-3 * wa * (1-a))
@@ -181,9 +182,6 @@ module MultiFluidDE
         if (this%models(i) == 1) then
           ! Axion effective fluid from arXiv:1806.10608
           z = 1/a - 1
-          !zc = this%de_params(max_num_of_params*(i-1) + 1)
-          !fde_zc = this%de_params(max_num_of_params*(i-1) + 2)
-          !wn = this%de_params(max_num_of_params*(i-1) + 3)
           zc = this%zc
           fde_zc = this%fde_zc
           wn = this%wn

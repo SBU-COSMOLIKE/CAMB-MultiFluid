@@ -9,7 +9,9 @@ class DarkEnergyModel(F2003Class):
     """
     _fields_ = [
         ("__is_cosmological_constant", c_bool),
-        ("__num_perturb_equations", c_int)]
+        ("__num_perturb_equations", c_int),
+        ("num_of_components", c_int)
+    ]
 
     def validate_params(self):
         return True
@@ -49,6 +51,7 @@ class DarkEnergyEqnOfState(DarkEnergyModel):
         self.w = w
         self.wa = wa
         self.cs2 = cs2
+        self.num_of_components = 1
         self.validate_params()
 
     def validate_params(self):
@@ -118,6 +121,80 @@ class DarkEnergyPPF(DarkEnergyEqnOfState):
     _fortran_class_module_ = 'DarkEnergyPPF'
     _fortran_class_name_ = 'TDarkEnergyPPF'
 
+@fortran_class
+class DarkEnergyMultifluid(DarkEnergyModel):
+    """
+    Class implementating the w, wa or splined w(a) parameterization in the PPF perturbation approximation
+    (`arXiv:0808.3125 <https://arxiv.org/abs/0808.3125>`_)
+    Use inherited methods to set parameters or interpolation table.
+    """
+    # integer :: DebugLevel
+    # integer, dimension(max_num_of_fluids) :: models
+    # real(dl) :: w0, wa ! CPL parameters
+    # real(dl) :: w1, w2, w3, w4, w5, z1, z2, z3, z4, z5 ! Binned w
+    # real(dl) :: zc, fde_zc, theta_i, wn ! Fluid EDE parameters
+    # real(dl) :: n, grhonode_zc, freq ! Fluid EDE internal parameters
+    # real(dl) :: fac1, fac2, fac3, fac4, fac5 ! Binned w factors
+    # class(CAMBdata), pointer, private :: State ! Have access to other quantities such as grhocrit, grhode_today, Omega_de
+    max_num_of_fluids = 2
+    _fields_ = [
+        ("DebugLevel", c_int, "verbosity"),
+        ("models", c_int*max_num_of_fluids, "models"),
+        ("w0", c_double, "w(0)"),
+        ("wa", c_double, "-dw/da(0)"),
+        ("w1", c_double, "w at first redshift bin"),
+        ("w2", c_double, "w at second redshift bin"),
+        ("w3", c_double, "w at third redshift bin"),
+        ("w4", c_double, "w at fourth redshift bin"),
+        ("w5", c_double, "w at fifth redshift bin"),
+        ("z1", c_double, "first redshift bin limit"),
+        ("z2", c_double, "second redshift bin limit"),
+        ("z3", c_double, "third redshift bin limit"),
+        ("z4", c_double, "fourth redshift bin limit"),
+        ("z5", c_double, "fifth redshift bin limit"),
+        ("zc", c_double, "critical redshift for EDE"),
+        ("fde_zc", c_double, "EDE fraction of the total energy density at z_c"),
+        ("theta_i", c_double, "controls the EDE sound speed"),
+        ("wn", c_double, "fluid equation of state after z_c"),
+        ("__n", c_double, "fluid equation of state after z_c"),
+        ("__grhonode_zc", c_double, "fluid equation of state after z_c"),
+        ("__freq", c_double, "fluid equation of state after z_c"),
+        ("__fac1", c_double, "fluid equation of state after z_c"),
+        ("__fac2", c_double, "fluid equation of state after z_c"),
+        ("__fac3", c_double, "fluid equation of state after z_c"),
+        ("__fac4", c_double, "fluid equation of state after z_c"),
+        ("__fac5", c_double, "fluid equation of state after z_c"),
+        ("__State", f_pointer, "fluid rest-frame sound speed squared"),
+    ]
+    _fortran_class_module_ = 'MultiFluidDE'
+    _fortran_class_name_ = 'TMultiFluidDE'
+    def set_params(self, 
+                    num_of_components=0,
+                    models=(1, 1, 0, 0),
+                    w0=-1, wa=0,
+                    w1=-1, w2=-1, w3=-1, w4=-1, w5=-1,
+                    z1=0.3, z2=0.6, z3=0.9, z4=1.2, z5=1.5,
+                    zc=1000, fde_zc=0, theta_i=1.0, wn=0.5,
+    ):
+        self.num_of_components=num_of_components
+        self.models=models
+        self.w0=w0
+        self.wa=wa
+        self.w1=w1
+        self.w2=w2
+        self.w3=w3
+        self.w4=w4
+        self.w5=w5
+        self.z1=z1
+        self.z2=z2
+        self.z3=z3
+        self.z4=z4
+        self.z5=z5
+        self.zc=zc
+        self.fde_zc=fde_zc
+        self.theta_i=theta_i
+        self.wn=wn
+
 
 @fortran_class
 class AxionEffectiveFluid(DarkEnergyModel):
@@ -139,6 +216,7 @@ class AxionEffectiveFluid(DarkEnergyModel):
         self.w_n = w_n
         self.fde_zc = fde_zc
         self.zc = zc
+        self.num_of_components = 1
         if theta_i is not None:
             self.theta_i = theta_i
 
@@ -205,6 +283,7 @@ class EarlyQuintessence(Quintessence):
     _fortran_class_name_ = 'TEarlyQuintessence'
 
     def set_params(self, n, f=0.05, m=5e-54, theta_i=0.0, use_zc=True, zc=None, fde_zc=None):
+        self.num_of_components = 1
         self.n = n
         self.f = f
         self.m = m
@@ -218,4 +297,4 @@ class EarlyQuintessence(Quintessence):
 
 
 # short names for models that support w/wa
-F2003Class._class_names.update({'fluid': DarkEnergyFluid, 'ppf': DarkEnergyPPF})
+F2003Class._class_names.update({'fluid': DarkEnergyFluid, 'ppf': DarkEnergyPPF, 'Multifluid': DarkEnergyMultifluid})
