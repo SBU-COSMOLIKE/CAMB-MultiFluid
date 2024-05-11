@@ -55,6 +55,7 @@
     real(dl), intent(IN) :: a
 
     w_de(1) = -1._dl
+    w_de(2) = -1._dl
 
     end function w_de  ! equation of state of the PPF DE
 
@@ -65,6 +66,7 @@
     real(dl), intent(IN) :: a
 
     grho_de(1) = 0._dl
+    grho_de(2) = 0._dl
 
     end function grho_de
 

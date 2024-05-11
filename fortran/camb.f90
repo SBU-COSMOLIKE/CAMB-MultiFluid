@@ -239,6 +239,7 @@
     logical function CAMB_ReadParams(P, Ini, ErrMsg)
     use NonLinear
     use DarkEnergyFluid
+    use MultiFluidDE
     use DarkEnergyPPF
     use Quintessence
     use results
@@ -411,6 +412,8 @@
         allocate (TAxionEffectiveFluid::P%DarkEnergy)
     else if (DarkEneryModel == 'EARLYQUINTESSENCE') then
         allocate (TEarlyQuintessence::P%DarkEnergy)
+    else if (DarkEneryModel == 'MULTIFLUID') then
+        allocate (TMultiFluidDE::P%DarkEnergy)
     else
         ErrMsg = 'Unknown dark energy model: '//trim(DarkEneryModel)
         return

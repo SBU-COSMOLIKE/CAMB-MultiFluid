@@ -2213,8 +2213,10 @@
     grhog_t=State%grhog/a2
 
     if (EV%is_cosmological_constant) then
-        grhov_t = State%grhov * a2
-        w_dark_energy_t = -1_dl
+        grhov_t(1) = State%grhov * a2
+        w_dark_energy_t(1) = -1_dl
+        grhov_t(2) = 0.0
+        w_dark_energy_t(2) = 0.0
     else
         call State%CP%DarkEnergy%BackgroundDensityAndPressure(State%grhov, a, grhov_t, w_dark_energy_t)
     end if

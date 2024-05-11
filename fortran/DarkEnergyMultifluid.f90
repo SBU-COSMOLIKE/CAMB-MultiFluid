@@ -23,7 +23,7 @@ module MultiFluidDE
     real(dl) :: zc, fde_zc, theta_i, wn ! Fluid EDE parameters
     real(dl) :: n, grhonode_zc, freq ! Fluid EDE internal parameters
     real(dl) :: fac1, fac2, fac3, fac4, fac5 ! Binned w factors
-    class(CAMBdata), pointer, private :: State ! Have access to other quantities such as grhocrit, grhode_today, Omega_de
+    ! class(CAMBdata), pointer, private :: State ! Have access to other quantities such as grhocrit, grhode_today, Omega_de
   contains
   procedure :: Init => TMultiFluidDE_Init
   procedure :: w_de => TMultiFluidDE_w_de
@@ -462,10 +462,11 @@ module MultiFluidDE
     real(dl) :: ac, grho_rad, grho_matter, xc, F, p, mu, n, zeq
 
     ! Save a pointer to `State` to get info about other components
-    select type(State)
-    class is (CAMBdata)
-        this%State => State
-    end select
+    ! select type(State)
+    ! class is (CAMBdata)
+    !     this%State => State
+    ! end select
+    
 
     this%is_cosmological_constant = .false.
     this%num_perturb_equations = 2 * this%num_of_components
@@ -490,16 +491,16 @@ module MultiFluidDE
     end if
 
     ! JVR: not grabbing quantities from State, but rather a pointer to State
-    !select type (State)
-    !type is (CAMBdata)
-      !Omega_de = State%Omega_de
-      !grhode_today = State%grhov
-      !grhocrit = State%grhocrit
-      !this%grhonode_zc = State%grho_no_de(ac) / ac**4
-      !grho_rad = (kappa/c**2*4*sigma_boltz/c**3*State%CP%tcmb**4*Mpc**2*(1+3.046*7._dl/8*(4._dl/11)**(4._dl/3)))
-      !grho_matter = (State%grhoc + State%grhob) * ac
-      !zeq = (State%CP%ombh2+State%CP%omch2)/((State%grhog+State%grhornomass)/grhocrit) / (State%CP%H0/100)**2
-    !end select
+    select type (State)
+    type is (CAMBdata)
+      Omega_de = State%Omega_de
+      grhode_today = State%grhov
+      grhocrit = State%grhocrit
+      this%grhonode_zc = State%grho_no_de(ac) / ac**4
+      grho_rad = (kappa/c**2*4*sigma_boltz/c**3*State%CP%tcmb**4*Mpc**2*(1+3.046*7._dl/8*(4._dl/11)**(4._dl/3)))
+      grho_matter = (State%grhoc + State%grhob) * ac
+      zeq = (State%CP%ombh2+State%CP%omch2)/((State%grhog+State%grhornomass)/grhocrit) / (State%CP%H0/100)**2
+    end select
 
     ! If wn = 1 then cs2 = 1
     ! If not, effective sound speed is dynamical

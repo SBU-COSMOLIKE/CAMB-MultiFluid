@@ -5,6 +5,7 @@
     use results
     use iso_c_binding
     use DarkEnergyFluid
+    use MultiFluidDE
     use DarkEnergyPPF
     use ObjectLists
     use classes
