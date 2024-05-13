@@ -20,3 +20,7 @@ Each model has parameters you need to input in the `set_params` function:
 - `w0` and `wa` for late DE
 - `zc`, `fde_zc`, `theta_i` and `wn` for fluid EDE or scalar field EDE
 - `use_zc`, `initial_phi`, `m`, `f`, `V0` for scalar field EDE
+
+## TODO:
+- Nonlinear model
+- Python interface
