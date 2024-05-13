@@ -177,7 +177,7 @@ class DarkEnergyMultifluid(DarkEnergyModel):
                     zc=1000, fde_zc=0, theta_i=1.0, wn=0.5,
     ):
         self.num_of_components=num_of_components
-        self.models=models
+        self.models=tuple(models)
         self.w0=w0
         self.wa=wa
         self.w1=w1
